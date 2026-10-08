@@ -2,7 +2,7 @@ import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { routes } from './app.routes';
-import { apiErrorInterceptor, authInterceptor, inspectorInterceptor } from './core/interceptors';
+import { apiErrorInterceptor, authInterceptor, coldStartInterceptor, inspectorInterceptor } from './core/interceptors';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -10,6 +10,9 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withComponentInputBinding()),
     // Ordem importa: o primeiro é o mais externo. O inspetor fica colado na rede para registrar a
     // requisição já com o token e a resposta antes de virar `ApiError`.
-    provideHttpClient(withFetch(), withInterceptors([apiErrorInterceptor, authInterceptor, inspectorInterceptor])),
+    provideHttpClient(
+      withFetch(),
+      withInterceptors([apiErrorInterceptor, coldStartInterceptor, authInterceptor, inspectorInterceptor]),
+    ),
   ],
 };

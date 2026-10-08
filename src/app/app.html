@@ -54,6 +54,19 @@
       Usando a API <strong>{{ api.current().name }}</strong> ({{ api.current().stack }}) em
       <code>{{ api.current().baseUrl }}</code>
     </p>
+    @if (demo) {
+      <p class="notice demo">
+        Demonstração: as APIs rodam no plano gratuito do Render. Elas dormem depois de 15 min sem uso, e os dados
+        (contas e tarefas) são apagados quando reiniciam.
+      </p>
+    }
+    @for (target of status.waking(); track target.id) {
+      <p class="notice waking" role="status">
+        <span class="spinner" aria-hidden="true"></span>
+        Acordando a API <strong>{{ target.name }}</strong
+        >… No plano gratuito ela dorme depois de 15 min sem uso, e a primeira resposta pode levar até 1 min.
+      </p>
+    }
     <router-outlet />
   </main>
 

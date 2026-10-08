@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["start"],
       "port": 4200
+    },
+    {
+      "name": "ng-serve-render",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["ng", "serve", "--configuration", "production", "--port", "4300"],
+      "port": 4300
     }
   ]
 }

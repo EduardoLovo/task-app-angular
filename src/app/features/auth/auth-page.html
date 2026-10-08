@@ -6,7 +6,13 @@
   </p>
 
   @if (motivo() === 'sessao-expirada') {
-    <p class="notice">Sua sessão nesta API expirou ou ficou inválida. Entre de novo.</p>
+    <p class="notice">
+      Sua sessão nesta API expirou ou ficou inválida. Entre de novo.
+      @if (demo) {
+        Se a API reiniciou, o banco dela voltou vazio: talvez seja preciso
+        <a routerLink="/cadastro">criar a conta de novo</a>.
+      }
+    </p>
   }
 
   <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
@@ -57,6 +63,12 @@
     </label>
 
     <app-error-alert [error]="error()" [details]="otherDetails()" />
+    @if (demo && error()?.code === 'INVALID_CREDENTIALS') {
+      <p class="notice">
+        Esta é uma demonstração: o banco da API é apagado quando ela reinicia. Se você já tinha conta,
+        <a routerLink="/cadastro">crie de novo</a>.
+      </p>
+    }
 
     <button type="submit" class="btn" [disabled]="submitting()">
       {{ submitting() ? 'Enviando…' : isRegister() ? 'Criar conta' : 'Entrar' }}

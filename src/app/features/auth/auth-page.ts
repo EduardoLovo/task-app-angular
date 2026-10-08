@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, signal } f
 import { FormControl, FormGroup, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import { ApiError } from '../../core/api-error';
 import { ApiSelector } from '../../core/api-selector.service';
 import { ErrorDetail } from '../../core/api.models';
@@ -52,6 +53,7 @@ export class AuthPage {
   /** Vem da query string (`?motivo=sessao-expirada`). */
   readonly motivo = input<string>();
 
+  protected readonly demo = environment.demo;
   protected readonly isRegister = computed(() => this.mode() === 'register');
   protected readonly submitting = signal(false);
   protected readonly error = signal<ApiError | null>(null);

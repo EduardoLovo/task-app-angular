@@ -14,6 +14,35 @@ as duas APIs têm o **mesmo contrato** e o tratamento de erros delas.
 Cada repositório tem um `README.md` (endpoints, regras, códigos de erro) e um `ESTUDO.md` (como foi construído).
 A especificação OpenAPI fica em `/openapi.json` de cada API, e a documentação interativa em `/docs`.
 
+## APIs em produção (Render, plano free)
+
+| API     | URL                                        |
+| ------- | ------------------------------------------ |
+| Express | https://task-api-express-2pva.onrender.com |
+| Flask   | https://task-api-flask-1ozq.onrender.com   |
+
+- O deploy é feito pelo Blueprint (`render.yaml`) no repositório `task-api-compose`. Cada push na `main` de uma API
+  faz o deploy dela depois que o CI passa.
+- **Soneca:** depois de 15 min sem acesso, a API dorme. A primeira requisição leva de 15 a 60 s para responder (cold
+  start). O front precisa mostrar um aviso ("acordando a API...") em vez de parecer travado. **Não** usar serviços
+  que "pingam" a API para mantê-la acordada: as 750 h grátis por mês são somadas entre os dois serviços.
+- **Banco temporário:** o SQLite começa vazio a cada deploy, reinício ou soneca. Usuários e tarefas somem; o front
+  deve lidar com um token que deixou de valer (`401 INVALID_TOKEN`) mandando o usuário fazer login de novo, e pode
+  avisar que é uma demonstração.
+- Rate limit por IP real do cliente (`TRUST_PROXY=3`, medido): 100 requisições a cada 15 min, e 10 tentativas de
+  cadastro/login. O cabeçalho `RateLimit` traz quantas restam, e `Retry-After` vem no 429.
+
+## Pendências do front para o deploy
+
+- Feito: `environment.ts` (build de produção) aponta para o Render, com `demo: true` (avisos de demonstração);
+  `environment.development.ts` continua em `localhost`.
+- Feito: cold start tratado pelo `coldStartInterceptor` + `ApiStatusStore` (aviso após 3 s, espera de até 90 s
+  se a API não respondeu nos últimos 14 min, 20 s se respondeu; `/health` ao escolher a API para acordá-la).
+- Escolher onde hospedar o front e publicar.
+- Depois de publicar o front, trocar o `CORS_ORIGIN` de `*` para o domínio dele no `render.yaml` do
+  `task-api-compose` (PR nesse repositório).
+- O repositório do front no GitHub é `EduardoLovo/task-app--angular` (com dois hífens).
+
 ## Contrato das APIs (resumo)
 
 - Endpoints: `GET /health` · `POST /auth/register` · `POST /auth/login` · `GET /auth/me` · `GET|POST /tasks` ·

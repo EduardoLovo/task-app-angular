@@ -8,7 +8,16 @@ import { API_TARGETS } from './api-selector.service';
 import { AuthResult } from './api.models';
 import { ATTACH_SESSION_TOKEN, labeled } from './http-context';
 import { InspectorStore } from './inspector.store';
-import { apiErrorInterceptor, authInterceptor, inspectorInterceptor } from './interceptors';
+import { ApiStatusStore } from './api-status.store';
+import {
+  COLD_START_TIMEOUT_MS,
+  SLOW_AFTER_MS,
+  TIMEOUT_MS,
+  apiErrorInterceptor,
+  authInterceptor,
+  coldStartInterceptor,
+  inspectorInterceptor,
+} from './interceptors';
 import { SessionStore } from './session.store';
 
 const EXPRESS = API_TARGETS.express.baseUrl;
@@ -39,7 +48,9 @@ describe('interceptors', () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
-        provideHttpClient(withInterceptors([apiErrorInterceptor, authInterceptor, inspectorInterceptor])),
+        provideHttpClient(
+          withInterceptors([apiErrorInterceptor, coldStartInterceptor, authInterceptor, inspectorInterceptor]),
+        ),
         provideHttpClientTesting(),
       ],
     });
@@ -129,5 +140,63 @@ describe('interceptors', () => {
 
     expect(backend.expectOne('https://exemplo.com/dados').request.headers.has('Authorization')).toBe(false);
     expect(inspector.entries()).toEqual([]);
+  });
+
+  describe('cold start', () => {
+    let status: ApiStatusStore;
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      status = TestBed.inject(ApiStatusStore);
+    });
+
+    afterEach(() => vi.useRealTimers());
+
+    it('avisa que a API está acordando quando a resposta demora', () => {
+      http.get(`${FLASK}/health`).subscribe();
+      expect(status.waking()).toEqual([]);
+
+      vi.advanceTimersByTime(SLOW_AFTER_MS);
+      expect(status.waking().map((target) => target.id)).toEqual(['flask']);
+
+      backend.expectOne(`${FLASK}/health`).flush({ data: { status: 'ok' } });
+      expect(status.waking()).toEqual([]);
+      expect(status.isAwake('flask')).toBe(true);
+    });
+
+    it('espera mais pela API que pode estar dormindo e desiste com TIMEOUT', async () => {
+      const result = firstValueFrom(http.get(`${EXPRESS}/health`)).catch((e: unknown) => e);
+      const req = backend.expectOne(`${EXPRESS}/health`);
+
+      vi.advanceTimersByTime(TIMEOUT_MS);
+      expect(req.cancelled).toBe(false);
+
+      vi.advanceTimersByTime(COLD_START_TIMEOUT_MS - TIMEOUT_MS);
+      const error = await result;
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).code).toBe('TIMEOUT');
+      expect(req.cancelled).toBe(true);
+      expect(status.waking()).toEqual([]);
+    });
+
+    it('com a API acordada, usa o limite normal e não mostra aviso', async () => {
+      status.markResponse('express');
+      const result = firstValueFrom(http.get(`${EXPRESS}/tasks`)).catch((e: unknown) => e);
+      backend.expectOne(`${EXPRESS}/tasks`);
+
+      vi.advanceTimersByTime(SLOW_AFTER_MS);
+      expect(status.waking()).toEqual([]);
+
+      vi.advanceTimersByTime(TIMEOUT_MS);
+      expect(((await result) as ApiError).code).toBe('TIMEOUT');
+    });
+
+    it('resposta de erro também conta como API acordada', async () => {
+      const result = firstValueFrom(http.get(`${EXPRESS}/tasks`)).catch(() => undefined);
+      backend.expectOne(`${EXPRESS}/tasks`).flush(errorBody(401, 'MISSING_TOKEN'), { status: 401, statusText: '' });
+      await result;
+
+      expect(status.isAwake('express')).toBe(true);
+    });
   });
 });

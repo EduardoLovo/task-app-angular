@@ -1,12 +1,20 @@
 import { HttpErrorResponse, HttpEventType, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, finalize, tap, throwError } from 'rxjs';
-import { toApiError } from './api-error';
+import { catchError, defer, finalize, tap, throwError, timeout } from 'rxjs';
+import { ApiError, toApiError } from './api-error';
 import { ApiSelector } from './api-selector.service';
+import { ApiStatusStore } from './api-status.store';
 import { ATTACH_SESSION_TOKEN, REQUEST_LABEL } from './http-context';
 import { InspectorStore } from './inspector.store';
 import { SessionStore } from './session.store';
+
+/** Depois disso sem resposta, a API provavelmente está acordando: o app mostra um aviso. */
+export const SLOW_AFTER_MS = 3_000;
+/** Limite de espera com a API acordada... */
+export const TIMEOUT_MS = 20_000;
+/** ...e quando ela pode estar dormindo (cold start de 15 a 60 s no plano free do Render). */
+export const COLD_START_TIMEOUT_MS = 90_000;
 
 /** Códigos que indicam que a sessão guardada não serve mais. */
 const SESSION_ENDED_CODES = new Set(['INVALID_TOKEN', 'TOKEN_EXPIRED']);
@@ -22,6 +30,52 @@ export const apiErrorInterceptor: HttpInterceptorFn = (req, next) => {
       throwError(() => (error instanceof HttpErrorResponse ? toApiError(error, apiName) : error)),
     ),
   );
+};
+
+/**
+ * Lida com a soneca das APIs: avisa quando a resposta demora e dá mais tempo à primeira requisição depois de um
+ * período sem uso. Sem isso, o app pareceria travado durante o cold start.
+ */
+export const coldStartInterceptor: HttpInterceptorFn = (req, next) => {
+  const target = inject(ApiSelector).targetOf(req.url);
+  if (!target) return next(req);
+  const status = inject(ApiStatusStore);
+
+  return defer(() => {
+    const awake = status.isAwake(target.id);
+    const limit = awake ? TIMEOUT_MS : COLD_START_TIMEOUT_MS;
+    let slow = false;
+    const slowTimer = awake
+      ? undefined
+      : setTimeout(() => {
+          slow = true;
+          status.slowStarted(target.id);
+        }, SLOW_AFTER_MS);
+
+    return next(req).pipe(
+      tap({
+        next: (event) => {
+          if (event.type === HttpEventType.Response) status.markResponse(target.id);
+        },
+        // Qualquer resposta HTTP, mesmo de erro, mostra que a API está de pé; status 0 é falta de resposta.
+        error: (error: unknown) => {
+          if (error instanceof HttpErrorResponse && error.status !== 0) status.markResponse(target.id);
+        },
+      }),
+      // `each`: o HttpClient emite um evento logo no envio, e o relógio recomeça a partir dele.
+      timeout({
+        each: limit,
+        with: () =>
+          throwError(
+            () => new ApiError(0, 'TIMEOUT', `A API ${target.name} não respondeu em ${limit / 1000} s. Tente de novo.`),
+          ),
+      }),
+      finalize(() => {
+        clearTimeout(slowTimer);
+        if (slow) status.slowFinished(target.id);
+      }),
+    );
+  });
 };
 
 /**
@@ -96,7 +150,13 @@ export const inspectorInterceptor: HttpInterceptorFn = (req, next) => {
       return throwError(() => error);
     }),
     finalize(() => {
-      if (!finished) inspector.finish(id, { status: 0, statusText: 'Cancelada', requestId: null, body: null });
+      if (!finished)
+        inspector.finish(id, {
+          status: 0,
+          statusText: 'Cancelada ou sem resposta a tempo',
+          requestId: null,
+          body: null,
+        });
     }),
   );
 };
