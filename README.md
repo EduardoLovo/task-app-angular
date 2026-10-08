@@ -73,7 +73,21 @@ Para testar o build de produção localmente contra o Render: `npx ng serve --co
   `401 INVALID_TOKEN`, e o front encerra a sessão e leva ao login, sugerindo criar a conta de novo. Com
   `demo: true` no environment, a interface avisa que é uma demonstração.
 - **CORS**: depois de publicar o front, troque o `CORS_ORIGIN` das APIs de `*` para o domínio dele (no `render.yaml`
-  do `task-api-compose`).
+  do `task-api-compose`). Atenção: os previews da Vercel têm uma URL por branch e seriam recusados por um
+  `CORS_ORIGIN` com um domínio só.
+
+## Deploy (Vercel)
+
+O [vercel.json](vercel.json) fixa a configuração do build, sem depender da detecção automática:
+
+- `npm ci` + `npm run build`, publicando `dist/task-app-angular/browser`;
+- **rewrite para o `index.html`**: as rotas (`/tarefas`, `/erros`...) existem só no Angular, e sem isso recarregar a
+  página numa delas daria 404. Arquivos que existem de verdade (JS, CSS, favicon) são servidos antes do rewrite;
+- **cache longo para JS e CSS**: o build gera nomes com hash (`outputHashing: all`), então cada versão nova tem
+  arquivos novos e o cache nunca fica velho. O `index.html` segue sem cache longo.
+
+Para publicar, importe o repositório no painel da Vercel. Cada push na `main` gera um deploy de produção, e cada PR,
+uma URL de preview.
 
 ## Como funciona
 
