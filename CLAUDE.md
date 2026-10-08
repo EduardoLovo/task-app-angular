@@ -32,16 +32,24 @@ A especificação OpenAPI fica em `/openapi.json` de cada API, e a documentaçã
 - Rate limit por IP real do cliente (`TRUST_PROXY=3`, medido): 100 requisições a cada 15 min, e 10 tentativas de
   cadastro/login. O cabeçalho `RateLimit` traz quantas restam, e `Retry-After` vem no 429.
 
-## Pendências do front para o deploy
+## Front em produção (Vercel)
 
-- Feito: `environment.ts` (build de produção) aponta para o Render, com `demo: true` (avisos de demonstração);
+- URL: https://task-app-angular-taupe.vercel.app — repositório `EduardoLovo/task-app--angular` (com dois hífens).
+- Configuração em `vercel.json`: build, pasta `dist/task-app-angular/browser`, rewrite para o `index.html` só em
+  caminhos sem extensão (arquivo inexistente dá 404, não HTML) e cache `immutable` para JS/CSS (nomes com hash).
+  Cada push na `main` faz deploy de produção; cada PR ganha uma URL de preview.
+- `environment.ts` (build de produção) aponta para o Render, com `demo: true` (avisos de demonstração);
   `environment.development.ts` continua em `localhost`.
-- Feito: cold start tratado pelo `coldStartInterceptor` + `ApiStatusStore` (aviso após 3 s, espera de até 90 s
-  se a API não respondeu nos últimos 14 min, 20 s se respondeu; `/health` ao escolher a API para acordá-la).
-- Escolher onde hospedar o front e publicar.
-- Depois de publicar o front, trocar o `CORS_ORIGIN` de `*` para o domínio dele no `render.yaml` do
-  `task-api-compose` (PR nesse repositório).
-- O repositório do front no GitHub é `EduardoLovo/task-app--angular` (com dois hífens).
+- Cold start tratado pelo `coldStartInterceptor` + `ApiStatusStore` (aviso após 3 s, espera de até 90 s se a API
+  não respondeu nos últimos 14 min, 20 s se respondeu; `/health` ao escolher a API para acordá-la).
+
+## Pendências
+
+- Decidir o `CORS_ORIGIN` das APIs (hoje `*`, no `render.yaml` do `task-api-compose`): o domínio da Vercel fecha o
+  acesso, mas bloqueia as URLs de preview (uma por branch). Alternativa: as APIs aceitarem uma lista/padrão de
+  origens (PR nos dois repositórios).
+- As APIs não expõem `RateLimit` / `Retry-After` no CORS (`Access-Control-Expose-Headers`), então o front não
+  consegue lê-los; e o formato do `RateLimit` difere (`100-in-15min` no Express, `100-in-900sec` no Flask).
 
 ## Contrato das APIs (resumo)
 

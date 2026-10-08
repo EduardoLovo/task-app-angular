@@ -6,6 +6,9 @@ Front em **Angular 22** que consome as duas versões da Task API — [Express](h
 e [Flask](https://github.com/EduardoLovo/task-api-flask) — pela mesma interface. O foco é mostrar que as duas APIs
 têm **o mesmo contrato** e como elas tratam erros.
 
+**Demonstração:** https://task-app-angular-taupe.vercel.app (as APIs ficam no plano gratuito do Render: a primeira
+requisição depois de um tempo parado pode levar até 1 min, e os dados são apagados quando elas reiniciam).
+
 ## O que tem
 
 - **Seletor de API** no topo (Express | Flask). Cada API tem o seu banco e recusa tokens da outra (claim `iss`),
