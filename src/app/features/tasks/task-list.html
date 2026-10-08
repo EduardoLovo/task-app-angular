@@ -1,0 +1,127 @@
+<div class="head">
+  <h1>Tarefas</h1>
+  <a class="btn" routerLink="/tarefas/nova">Nova tarefa</a>
+</div>
+
+<form class="filters card" role="search" (submit)="$event.preventDefault()">
+  <div class="field search">
+    <label for="search">Buscar</label>
+    <input
+      id="search"
+      type="search"
+      placeholder="Título ou descrição"
+      [value]="filters().search"
+      (change)="setFilter('search', $any($event.target).value.trim())"
+    />
+  </div>
+
+  <div class="field">
+    <label for="status">Status</label>
+    <select id="status" [value]="filters().status" (change)="setFilter('status', $any($event.target).value)">
+      <option value="">Todos</option>
+      @for (option of statusOptions; track option[0]) {
+        <option [value]="option[0]">{{ option[1] }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="priority">Prioridade</label>
+    <select id="priority" [value]="filters().priority" (change)="setFilter('priority', $any($event.target).value)">
+      <option value="">Todas</option>
+      @for (option of priorityOptions; track option[0]) {
+        <option [value]="option[0]">{{ option[1] }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="sortBy">Ordenar por</label>
+    <select id="sortBy" [value]="filters().sortBy" (change)="setFilter('sortBy', $any($event.target).value)">
+      <option value="createdAt">Criação</option>
+      <option value="dueDate">Prazo</option>
+      <option value="priority">Prioridade</option>
+      <option value="title">Título</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="order">Ordem</label>
+    <select id="order" [value]="filters().order" (change)="setFilter('order', $any($event.target).value)">
+      <option value="desc">Decrescente</option>
+      <option value="asc">Crescente</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="limit">Por página</label>
+    <select id="limit" [value]="filters().limit" (change)="setFilter('limit', +$any($event.target).value)">
+      <option [value]="5">5</option>
+      <option [value]="10">10</option>
+      <option [value]="20">20</option>
+      <option [value]="50">50</option>
+    </select>
+  </div>
+
+  <button type="button" class="btn btn-ghost" (click)="clearFilters()">Limpar</button>
+</form>
+
+<app-error-alert [error]="loadError()" [details]="loadError()?.details ?? []" />
+<app-error-alert [error]="actionError()" [details]="actionError()?.details ?? []" />
+
+@if (tasks.isLoading() && !items().length) {
+  <p class="muted">Carregando…</p>
+} @else if (!loadError() && !items().length) {
+  <div class="card empty">
+    <p>Nenhuma tarefa encontrada na API {{ api.current().name }}.</p>
+    <a class="btn" routerLink="/tarefas/nova">Criar a primeira</a>
+  </div>
+}
+
+<ul class="tasks" [class.loading]="tasks.isLoading()">
+  @for (task of items(); track task.id) {
+    <li class="card task" [class.done]="task.status === 'done'">
+      <div class="task-main">
+        <a class="title" [routerLink]="['/tarefas', task.id]">{{ task.title }}</a>
+        @if (task.description) {
+          <p class="description muted">{{ task.description }}</p>
+        }
+        <div class="tags">
+          <span class="badge" [class.badge-ok]="task.status === 'done'">{{ statusLabels[task.status] }}</span>
+          <span [class]="'badge prio-' + task.priority">Prioridade {{ priorityLabels[task.priority] }}</span>
+          @if (task.dueDate) {
+            <span class="badge">Prazo {{ task.dueDate + 'T00:00:00' | date: 'dd/MM/yyyy' }}</span>
+          }
+        </div>
+      </div>
+      <div class="task-actions">
+        <button type="button" class="btn btn-ghost btn-sm" [disabled]="busyId() === task.id" (click)="toggleDone(task)">
+          {{ task.status === 'done' ? 'Reabrir' : 'Concluir' }}
+        </button>
+        <a class="btn btn-ghost btn-sm" [routerLink]="['/tarefas', task.id]">Editar</a>
+        <button type="button" class="btn btn-danger btn-sm" [disabled]="busyId() === task.id" (click)="remove(task)">
+          Excluir
+        </button>
+      </div>
+    </li>
+  }
+</ul>
+
+@if (meta(); as meta) {
+  @if (meta.total > 0) {
+    <nav class="pager" aria-label="Paginação">
+      <button type="button" class="btn btn-ghost btn-sm" [disabled]="page() <= 1" (click)="page.set(page() - 1)">
+        Anterior
+      </button>
+      <span class="muted">Página {{ meta.page }} de {{ meta.totalPages }} · {{ meta.total }} tarefa(s)</span>
+      <button
+        type="button"
+        class="btn btn-ghost btn-sm"
+        [disabled]="page() >= meta.totalPages"
+        (click)="page.set(page() + 1)"
+      >
+        Próxima
+      </button>
+    </nav>
+  }
+}

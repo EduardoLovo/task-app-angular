@@ -1,0 +1,96 @@
+<div class="head">
+  <div>
+    <h1>Testar erros</h1>
+    <p class="muted">
+      Cada cenário manda uma requisição inválida de propósito para <strong>as duas APIs</strong> e compara a resposta
+      com o contrato. Veja a resposta crua de cada uma no painel de requisições.
+    </p>
+  </div>
+  <div class="head-actions">
+    <button type="button" class="btn" [disabled]="runningAll()" (click)="runAll()">
+      {{ runningAll() ? 'Rodando…' : 'Rodar todos' }}
+    </button>
+    <button type="button" class="btn btn-ghost" [disabled]="runningAll()" (click)="clear()">Limpar</button>
+  </div>
+</div>
+
+@if (summary().total) {
+  <p class="summary" [class.all-ok]="summary().ok === summary().total">
+    {{ summary().ok }} de {{ summary().total }} respostas conforme o contrato
+  </p>
+}
+
+<p class="hint">
+  Os cenários marcados com 🔒 precisam de login na API (sem ele, a resposta seria <code>MISSING_TOKEN</code>). As rotas
+  <code>/auth</code> têm limite de requisições: se aparecer <code>TOO_MANY_REQUESTS</code>, é o rate limit funcionando.
+</p>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Cenário</th>
+        <th scope="col">Esperado</th>
+        @for (target of api.targets; track target.id) {
+          <th scope="col">
+            {{ target.name }}
+            @if (!sessions.get(target.id)) {
+              <span class="muted small">(sem login)</span>
+            }
+          </th>
+        }
+        <th scope="col"><span class="sr-only">Ações</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (scenario of scenarios; track scenario.id) {
+        <tr>
+          <td>
+            <strong>
+              @if (scenario.needsSession || scenario.needsOtherSession) {
+                <span title="Precisa de login">🔒</span>
+              }
+              {{ scenario.title }}
+            </strong>
+            <div class="muted small">{{ scenario.description }}</div>
+          </td>
+          <td>
+            <code class="expected">{{ scenario.expectedStatus }} {{ scenario.expectedCode }}</code>
+          </td>
+          @for (target of api.targets; track target.id) {
+            <td>
+              @let current = cell(scenario, target.id);
+              @if (current === 'running') {
+                <span class="muted">…</span>
+              } @else if (skippedReason(current); as reason) {
+                <span class="muted small">{{ reason }}</span>
+              } @else if (asResult(current); as result) {
+                <div class="result" [class.ok]="result.matches" [class.fail]="!result.matches">
+                  <span class="icon" aria-hidden="true">{{ result.matches ? '✓' : '✗' }}</span>
+                  <code>{{ result.status || '—' }} {{ result.code ?? 'sucesso' }}</code>
+                  <span class="sr-only">{{ result.matches ? 'conforme o contrato' : 'diferente do esperado' }}</span>
+                </div>
+                <div class="muted small">
+                  {{ result.message }}
+                  @if (result.detailCount) {
+                    · {{ result.detailCount }} item(ns) em details
+                  }
+                </div>
+              }
+            </td>
+          }
+          <td>
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm"
+              [disabled]="runningAll()"
+              (click)="runScenario(scenario)"
+            >
+              Testar
+            </button>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

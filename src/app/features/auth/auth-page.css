@@ -1,0 +1,21 @@
+.auth {
+  max-width: 440px;
+  margin: 1rem auto;
+}
+
+form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.notice {
+  background: var(--code-bg);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+}
+
+.switch {
+  margin: 1rem 0 0;
+  font-size: 0.9rem;
+}

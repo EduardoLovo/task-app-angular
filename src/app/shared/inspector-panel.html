@@ -1,0 +1,74 @@
+<header class="panel-head">
+  <div>
+    <h2>Por baixo dos panos</h2>
+    <p class="muted">Cada requisição enviada e a resposta crua da API.</p>
+  </div>
+  <button
+    type="button"
+    class="btn btn-ghost btn-sm"
+    (click)="inspector.clear()"
+    [disabled]="!inspector.entries().length"
+  >
+    Limpar
+  </button>
+</header>
+
+@if (!inspector.entries().length) {
+  <p class="empty muted">Nenhuma requisição ainda. Faça login ou use o "Testar erros".</p>
+}
+
+<ol class="entries">
+  @for (entry of inspector.entries(); track entry.id) {
+    <li>
+      <details [open]="$first">
+        <summary>
+          <span class="method">{{ entry.request.method }}</span>
+          <span class="path" [title]="entry.request.url">{{ path(entry) }}</span>
+          <span [class]="statusClass(entry)">{{ entry.response ? entry.response.status || 'falhou' : '…' }}</span>
+          <span class="meta muted">
+            {{ entry.api }}
+            @if (entry.label) {
+              · {{ entry.label }}
+            }
+            @if (entry.durationMs !== null) {
+              · {{ entry.durationMs }} ms
+            }
+            @if (errorCode(entry); as code) {
+              · <code class="code">{{ code }}</code>
+            }
+          </span>
+        </summary>
+
+        <div class="exchange">
+          <section>
+            <h3>
+              Requisição <small class="muted">{{ entry.startedAt | date: 'HH:mm:ss' }}</small>
+            </h3>
+            <pre>{{ entry.request.method }} {{ entry.request.url }}</pre>
+            @if (hasHeaders(entry)) {
+              <pre>{{ pretty(entry.request.headers) }}</pre>
+            }
+            @if (entry.request.body !== null) {
+              <pre>{{ pretty(entry.request.body) }}</pre>
+            }
+          </section>
+
+          <section>
+            <h3>Resposta</h3>
+            @if (entry.response; as response) {
+              <pre>{{ response.status }} {{ response.statusText }}</pre>
+              @if (response.requestId) {
+                <p class="muted small">
+                  X-Request-Id: <code>{{ response.requestId }}</code>
+                </p>
+              }
+              <pre>{{ pretty(response.body) }}</pre>
+            } @else {
+              <p class="muted">Aguardando…</p>
+            }
+          </section>
+        </div>
+      </details>
+    </li>
+  }
+</ol>

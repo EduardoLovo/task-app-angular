@@ -1,0 +1,65 @@
+<header class="topbar">
+  <a class="brand" routerLink="/">Task App</a>
+
+  <div class="api-switch" role="radiogroup" aria-label="API usada">
+    @for (target of api.targets; track target.id) {
+      <button
+        type="button"
+        role="radio"
+        [attr.aria-checked]="api.id() === target.id"
+        [class.active]="api.id() === target.id"
+        [title]="target.stack + ' · ' + target.baseUrl"
+        (click)="selectApi(target.id)"
+      >
+        {{ target.name }}
+        @if (session.get(target.id)) {
+          <span class="dot" aria-label="com sessão"></span>
+        }
+      </button>
+    }
+  </div>
+
+  <nav class="nav">
+    @if (session.isLoggedIn()) {
+      <a routerLink="/tarefas" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }">Tarefas</a>
+    }
+    <a routerLink="/erros" routerLinkActive="active">Testar erros</a>
+  </nav>
+
+  <div class="user">
+    @if (session.current(); as current) {
+      <span class="muted" [title]="current.user.email">{{ current.user.name }}</span>
+      <button type="button" class="btn btn-ghost btn-sm" (click)="logout()">Sair</button>
+    } @else {
+      <a class="btn btn-ghost btn-sm" routerLink="/login">Entrar</a>
+    }
+    <button
+      type="button"
+      class="btn btn-ghost btn-sm"
+      [attr.aria-expanded]="panelOpen()"
+      aria-controls="inspector"
+      (click)="panelOpen.set(!panelOpen())"
+    >
+      {{ panelOpen() ? 'Esconder' : 'Ver' }} requisições
+      @if (inspector.errorCount()) {
+        <span class="badge badge-error">{{ inspector.errorCount() }}</span>
+      }
+    </button>
+  </div>
+</header>
+
+<div class="layout" [class.with-panel]="panelOpen()">
+  <main>
+    <p class="api-hint muted">
+      Usando a API <strong>{{ api.current().name }}</strong> ({{ api.current().stack }}) em
+      <code>{{ api.current().baseUrl }}</code>
+    </p>
+    <router-outlet />
+  </main>
+
+  @if (panelOpen()) {
+    <aside id="inspector" class="panel">
+      <app-inspector-panel />
+    </aside>
+  }
+</div>

@@ -1,0 +1,53 @@
+# task-app-angular
+
+Frontend em **Angular** que consome as duas versões da Task API. É uma vitrine de portfólio: o foco é mostrar que
+as duas APIs têm o **mesmo contrato** e o tratamento de erros delas.
+
+## Projetos relacionados (pastas lado a lado em `D:\Dev`)
+
+| Repositório                                                 | O que é                                            | Porta local |
+| ----------------------------------------------------------- | -------------------------------------------------- | ----------- |
+| `task-api-express` (GitHub: `EduardoLovo/Task-api-express`) | API em Node.js + Express 5                         | 3000        |
+| `task-api-flask` (GitHub: `EduardoLovo/task-api-flask`)     | Mesma API em Python + Flask 3                      | 5000        |
+| `task-api-compose` (GitHub: `EduardoLovo/task-api-compose`) | Sobe as duas com Docker e roda o teste de contrato | —           |
+
+Cada repositório tem um `README.md` (endpoints, regras, códigos de erro) e um `ESTUDO.md` (como foi construído).
+A especificação OpenAPI fica em `/openapi.json` de cada API, e a documentação interativa em `/docs`.
+
+## Contrato das APIs (resumo)
+
+- Endpoints: `GET /health` · `POST /auth/register` · `POST /auth/login` · `GET /auth/me` · `GET|POST /tasks` ·
+  `GET|PATCH|DELETE /tasks/:id`. Rotas autenticadas usam `Authorization: Bearer <token>`.
+- Sucesso: `{ "data": ... }`. A listagem devolve `{ "data": [...], "meta": { page, limit, total, totalPages } }`.
+- **Todo erro** tem o formato:
+  `{ "error": { "status", "code", "message", "details": [{ location, field, message }], "requestId" } }`.
+  O `code` é estável (`VALIDATION_ERROR`, `INVALID_TOKEN`, `TASK_NOT_FOUND`...), e a `message` vem em português.
+- Tarefa: `id, title (1–120), description (até 1000, aceita null), status (pending|in_progress|done),
+priority (low|medium|high), dueDate (YYYY-MM-DD ou null), createdAt, updatedAt`. Campos extras são recusados.
+- Query de `GET /tasks`: `status, priority, search, page, limit (1–100), sortBy (createdAt|dueDate|priority|title),
+order (asc|desc)`.
+- **Tokens não valem de uma API para a outra**: cada uma tem o seu banco e confere o emissor (`iss`). Ao trocar de
+  API no seletor, o front precisa de uma sessão (login) separada para cada uma.
+- CORS: as APIs leem `CORS_ORIGIN` (padrão `*`); no deploy, configurar o domínio do front.
+
+## O que foi combinado para o front
+
+- **Um front único com seletor de API** (Express | Flask) no topo, e não uma página para cada API.
+- Telas pequenas de propósito: cadastro/login, lista de tarefas com filtros e paginação, formulário de tarefa.
+- **Painel "por baixo dos panos"**: mostra a requisição enviada e a resposta crua (status, `code`, `details`,
+  `requestId`). É o que destaca o tratamento de erros, foco do projeto.
+- Um botão para "testar erros", que envia requisições inválidas de propósito.
+- Angular escolhido por ser uma stack nova no portfólio (que já tem React/Next.js) e por encaixar bem: interceptor do
+  `HttpClient` (token e erros num lugar só), Reactive Forms (mesmas regras do backend), serviço injetado com a API
+  escolhida.
+
+## Como o usuário trabalha
+
+- Português do Brasil em tudo (conversa, mensagens da interface, comentários).
+- **O usuário faz os próprios commits**: só sugerir a mensagem (e o nome da branch), nunca commitar.
+- Os repositórios das APIs têm a `main` protegida: mudanças entram por branch + PR com CI verde.
+- Padrão de qualidade das APIs, para manter no front: CI no GitHub Actions (lint, testes, build), Dependabot,
+  lint/formatação automáticos, `.gitattributes` com `eol=lf`, README e `ESTUDO.md` (gerado com `/estudo` no fim).
+- Ambiente: Windows 11, Node 24, Docker Desktop.
+- Nesta máquina, a imagem `python:3.14-slim` está corrompida no Docker local. Por isso os `.env` do Flask e do
+  compose usam `PYTHON_IMAGE=python:3.14-slim-bookworm`.

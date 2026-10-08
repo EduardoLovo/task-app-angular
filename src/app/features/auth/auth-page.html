@@ -1,0 +1,73 @@
+<section class="card auth">
+  <h1>{{ isRegister() ? 'Criar conta' : 'Entrar' }}</h1>
+  <p class="muted">
+    Conta na API <strong>{{ api.current().name }}</strong
+    >. Cada API tem o seu banco de usuários: uma conta (e um token) de uma não vale na outra.
+  </p>
+
+  @if (motivo() === 'sessao-expirada') {
+    <p class="notice">Sua sessão nesta API expirou ou ficou inválida. Entre de novo.</p>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    @if (isRegister()) {
+      <div class="field" [class.invalid]="messages('name').length">
+        <label for="name">Nome</label>
+        <input id="name" formControlName="name" autocomplete="name" />
+        <ul class="field-errors">
+          @for (message of messages('name'); track message) {
+            <li>{{ message }}</li>
+          }
+        </ul>
+      </div>
+    }
+
+    <div class="field" [class.invalid]="messages('email').length">
+      <label for="email">E-mail</label>
+      <input id="email" type="email" formControlName="email" autocomplete="email" />
+      <ul class="field-errors">
+        @for (message of messages('email'); track message) {
+          <li>{{ message }}</li>
+        }
+      </ul>
+    </div>
+
+    <div class="field" [class.invalid]="messages('password').length">
+      <label for="password">Senha</label>
+      <input
+        id="password"
+        type="password"
+        formControlName="password"
+        [attr.autocomplete]="isRegister() ? 'new-password' : 'current-password'"
+      />
+      <ul class="field-errors">
+        @for (message of messages('password'); track message) {
+          <li>{{ message }}</li>
+        }
+      </ul>
+    </div>
+
+    <label class="checkbox">
+      <input
+        type="checkbox"
+        [checked]="clientValidation()"
+        (change)="toggleClientValidation($any($event.target).checked)"
+      />
+      Validar também no front (desmarque para ver a API recusando)
+    </label>
+
+    <app-error-alert [error]="error()" [details]="otherDetails()" />
+
+    <button type="submit" class="btn" [disabled]="submitting()">
+      {{ submitting() ? 'Enviando…' : isRegister() ? 'Criar conta' : 'Entrar' }}
+    </button>
+  </form>
+
+  <p class="switch muted">
+    @if (isRegister()) {
+      Já tem conta? <a routerLink="/login">Entrar</a>
+    } @else {
+      Ainda não tem conta nesta API? <a routerLink="/cadastro">Criar conta</a>
+    }
+  </p>
+</section>

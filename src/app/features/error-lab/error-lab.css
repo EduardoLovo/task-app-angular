@@ -1,0 +1,103 @@
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.head h1 {
+  margin-bottom: 0.25rem;
+}
+
+.head p {
+  margin: 0;
+  max-width: 60ch;
+}
+
+.head-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.summary {
+  font-weight: 600;
+  color: var(--error-text);
+  margin: 1rem 0 0;
+}
+
+.summary.all-ok {
+  color: var(--ok);
+}
+
+.hint {
+  margin: 0.75rem 0 1rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+th,
+td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+th {
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+td:first-child {
+  min-width: 14rem;
+}
+
+.small {
+  font-size: 0.8rem;
+}
+
+.expected {
+  white-space: nowrap;
+}
+
+.result {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.result.ok {
+  color: var(--ok);
+}
+
+.result.fail {
+  color: var(--error-text);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

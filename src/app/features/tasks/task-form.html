@@ -1,0 +1,95 @@
+<a class="back" routerLink="/tarefas">← Voltar para a lista</a>
+
+<section class="card form-card">
+  <h1>{{ isEdit() ? 'Editar tarefa' : 'Nova tarefa' }}</h1>
+
+  @if (loading()) {
+    <p class="muted">Carregando…</p>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="field" [class.invalid]="messages('title').length">
+      <label for="title">Título</label>
+      <input id="title" formControlName="title" />
+      <div class="row-between">
+        <ul class="field-errors">
+          @for (message of messages('title'); track message) {
+            <li>{{ message }}</li>
+          }
+        </ul>
+        <span class="hint">{{ form.controls.title.value.length }}/120</span>
+      </div>
+    </div>
+
+    <div class="field" [class.invalid]="messages('description').length">
+      <label for="description">Descrição <span class="muted">(opcional)</span></label>
+      <textarea id="description" formControlName="description" rows="4"></textarea>
+      <div class="row-between">
+        <ul class="field-errors">
+          @for (message of messages('description'); track message) {
+            <li>{{ message }}</li>
+          }
+        </ul>
+        <span class="hint">{{ form.controls.description.value.length }}/1000</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="field" [class.invalid]="messages('status').length">
+        <label for="status">Status</label>
+        <select id="status" formControlName="status">
+          @for (option of statusOptions; track option[0]) {
+            <option [value]="option[0]">{{ option[1] }}</option>
+          }
+        </select>
+        <ul class="field-errors">
+          @for (message of messages('status'); track message) {
+            <li>{{ message }}</li>
+          }
+        </ul>
+      </div>
+
+      <div class="field" [class.invalid]="messages('priority').length">
+        <label for="priority">Prioridade</label>
+        <select id="priority" formControlName="priority">
+          @for (option of priorityOptions; track option[0]) {
+            <option [value]="option[0]">{{ option[1] }}</option>
+          }
+        </select>
+        <ul class="field-errors">
+          @for (message of messages('priority'); track message) {
+            <li>{{ message }}</li>
+          }
+        </ul>
+      </div>
+
+      <div class="field" [class.invalid]="messages('dueDate').length">
+        <label for="dueDate">Prazo <span class="muted">(opcional)</span></label>
+        <input id="dueDate" type="date" formControlName="dueDate" />
+        <ul class="field-errors">
+          @for (message of messages('dueDate'); track message) {
+            <li>{{ message }}</li>
+          }
+        </ul>
+      </div>
+    </div>
+
+    <label class="checkbox">
+      <input
+        type="checkbox"
+        [checked]="clientValidation()"
+        (change)="toggleClientValidation($any($event.target).checked)"
+      />
+      Validar também no front (desmarque para ver a API recusando)
+    </label>
+
+    <app-error-alert [error]="error()" [details]="otherDetails()" />
+
+    <div class="actions">
+      <a class="btn btn-ghost" routerLink="/tarefas">Cancelar</a>
+      <button type="submit" class="btn" [disabled]="submitting() || loading()">
+        {{ submitting() ? 'Salvando…' : isEdit() ? 'Salvar alterações' : 'Criar tarefa' }}
+      </button>
+    </div>
+  </form>
+</section>
