@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { ApiError } from '../core/api-error';
 import { ErrorDetail } from '../core/api.models';
+import { formatDuration } from '../core/rate-limit';
 
 /** Mostra um `ApiError` do jeito que a API mandou: mensagem, `code`, `details` e `requestId`. */
 @Component({
@@ -21,6 +22,9 @@ import { ErrorDetail } from '../core/api.models';
               </li>
             }
           </ul>
+        }
+        @if (error.retryAfter !== null) {
+          <span>Tente de novo em {{ duration(error.retryAfter) }}.</span>
         }
         @if (error.requestId) {
           <small class="muted"
@@ -57,4 +61,6 @@ export class ErrorAlert {
   readonly error = input<ApiError | null>(null);
   /** Itens de `details` que não foram exibidos junto de um campo do formulário. */
   readonly details = input<ErrorDetail[]>([]);
+
+  protected readonly duration = formatDuration;
 }

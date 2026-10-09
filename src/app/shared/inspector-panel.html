@@ -13,6 +13,25 @@
   </button>
 </header>
 
+<section class="quotas" aria-labelledby="quotas-title">
+  <h3 id="quotas-title">Limite de requisições</h3>
+  <p class="muted small">
+    Lido dos cabeçalhos <code>RateLimit</code> e <code>RateLimit-Policy</code> de cada resposta.
+  </p>
+  <div class="quota-grid">
+    @for (target of api.targets; track target.id) {
+      <div class="quota-api" [class.current]="api.id() === target.id">
+        <strong>{{ target.name }}</strong>
+        @for (quota of rateLimits.all()[target.id] ?? []; track quota.name) {
+          <app-rate-limit-meter [quota]="quota" />
+        } @empty {
+          <span class="muted small">Sem resposta ainda.</span>
+        }
+      </div>
+    }
+  </div>
+</section>
+
 @if (!inspector.entries().length) {
   <p class="empty muted">Nenhuma requisição ainda. Faça login ou use o "Testar erros".</p>
 }
@@ -61,6 +80,18 @@
                 <p class="muted small">
                   X-Request-Id: <code>{{ response.requestId }}</code>
                 </p>
+              }
+              @if (response.rateLimit.length || response.retryAfter !== null) {
+                <div class="entry-limits">
+                  @for (quota of response.rateLimit; track quota.name) {
+                    <app-rate-limit-meter [quota]="quota" />
+                  }
+                  @if (response.retryAfter !== null) {
+                    <p class="small">
+                      Retry-After: <code>{{ response.retryAfter }}</code> s
+                    </p>
+                  }
+                </div>
               }
               <pre>{{ pretty(response.body) }}</pre>
             } @else {

@@ -9,6 +9,7 @@ import { AuthResult } from './api.models';
 import { ATTACH_SESSION_TOKEN, labeled } from './http-context';
 import { InspectorStore } from './inspector.store';
 import { ApiStatusStore } from './api-status.store';
+import { RateLimitStore } from './rate-limit.store';
 import {
   COLD_START_TIMEOUT_MS,
   SLOW_AFTER_MS,
@@ -131,6 +132,37 @@ describe('interceptors', () => {
     expect(entry.response?.status).toBe(400);
     expect(entry.response?.body).toEqual(errorBody(400, 'VALIDATION_ERROR'));
     expect(inspector.errorCount()).toBe(1);
+  });
+
+  it('lê os cabeçalhos de rate limit e o Retry-After do 429', async () => {
+    const result = firstValueFrom(http.post(`${EXPRESS}/auth/login`, {})).catch((e: unknown) => e);
+    backend.expectOne(`${EXPRESS}/auth/login`).flush(errorBody(429, 'TOO_MANY_REQUESTS'), {
+      status: 429,
+      statusText: 'Too Many Requests',
+      headers: {
+        RateLimit: '"100-in-900sec"; r=90; t=600, "10-in-900sec"; r=0; t=600',
+        'RateLimit-Policy': '"100-in-900sec"; q=100; w=900; pk=:abc:, "10-in-900sec"; q=10; w=900; pk=:abc:',
+        'Retry-After': '600',
+      },
+    });
+
+    const error = (await result) as ApiError;
+    expect(error.code).toBe('TOO_MANY_REQUESTS');
+    expect(error.retryAfter).toBe(600);
+
+    const [entry] = inspector.entries();
+    expect(entry.response?.retryAfter).toBe(600);
+    expect(entry.response?.rateLimit.map((q) => [q.name, q.remaining, q.limit])).toEqual([
+      ['100-in-900sec', 90, 100],
+      ['10-in-900sec', 0, 10],
+    ]);
+    // O quadro do painel guarda o último valor de cada API.
+    expect(
+      TestBed.inject(RateLimitStore)
+        .all()
+        .express?.map((q) => q.remaining),
+    ).toEqual([90, 0]);
+    expect(TestBed.inject(RateLimitStore).all().flask).toBeUndefined();
   });
 
   it('não mexe em requisições para outros endereços', () => {

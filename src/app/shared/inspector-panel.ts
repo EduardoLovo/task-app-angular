@@ -1,17 +1,22 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ApiSelector } from '../core/api-selector.service';
 import { InspectorEntry, InspectorStore } from '../core/inspector.store';
+import { RateLimitStore } from '../core/rate-limit.store';
+import { RateLimitMeter } from './rate-limit-meter';
 
 /** Painel "por baixo dos panos": a requisição como saiu e a resposta crua da API. */
 @Component({
   selector: 'app-inspector-panel',
-  imports: [DatePipe],
+  imports: [DatePipe, RateLimitMeter],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './inspector-panel.html',
   styleUrl: './inspector-panel.css',
 })
 export class InspectorPanel {
   protected readonly inspector = inject(InspectorStore);
+  protected readonly rateLimits = inject(RateLimitStore);
+  protected readonly api = inject(ApiSelector);
 
   protected path(entry: InspectorEntry): string {
     try {

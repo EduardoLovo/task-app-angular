@@ -45,11 +45,19 @@ A especificação OpenAPI fica em `/openapi.json` de cada API, e a documentaçã
 
 ## Pendências
 
-- Decidir o `CORS_ORIGIN` das APIs (hoje `*`, no `render.yaml` do `task-api-compose`): o domínio da Vercel fecha o
-  acesso, mas bloqueia as URLs de preview (uma por branch). Alternativa: as APIs aceitarem uma lista/padrão de
-  origens (PR nos dois repositórios).
-- As APIs não expõem `RateLimit` / `Retry-After` no CORS (`Access-Control-Expose-Headers`), então o front não
-  consegue lê-los; e o formato do `RateLimit` difere (`100-in-15min` no Express, `100-in-900sec` no Flask).
+- Feito (2026-10-08): `CORS_ORIGIN` das APIs no Render restrito a
+  `https://task-app-angular-taupe.vercel.app,https://task-app-angular-*-eduardolovos-projects.vercel.app`
+  (produção + previews da conta `eduardolovos-projects`; o `*` não casa ponto). As APIs aceitam lista de origens
+  desde os PRs `feat/cors-lista-de-origens`. Consequência: `localhost` não acessa as APIs do Render; para testar o
+  build de produção localmente, rodar as APIs locais. Os previews da Vercel têm Deployment Protection (só abrem
+  logado na Vercel).
+- Feito (2026-10-08): `RateLimit`, `RateLimit-Policy` e `Retry-After` expostos no CORS das duas APIs, com formato
+  idêntico (nome da política em segundos, `"100-in-900sec"`; nas rotas `/auth`, as duas políticas; mesmo `pk`).
+  Testado em produção a partir do front na Vercel.
+- Feito (2026-10-09): o painel "por baixo dos panos" mostra o limite de requisições das duas APIs lado a lado
+  (`rate-limit.ts` + `RateLimitStore`, alimentados pelo `inspectorInterceptor`), e o alerta de 429 mostra o
+  `Retry-After`.
+- Diferença conhecida entre as APIs: com IPv6, o Express limita por faixa /56 e o Flask por endereço.
 
 ## Contrato das APIs (resumo)
 

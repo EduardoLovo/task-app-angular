@@ -16,7 +16,9 @@ requisição depois de um tempo parado pode levar até 1 min, e os dados são ap
 - **Cadastro e login**, **lista de tarefas** com busca, filtros, ordenação e paginação, e **formulário** de
   criar/editar.
 - **Painel "por baixo dos panos"**: cada requisição como saiu (método, URL, cabeçalhos, corpo — com o token
-  encurtado) e a resposta crua da API (status, corpo, `X-Request-Id`, duração).
+  encurtado) e a resposta crua da API (status, corpo, `X-Request-Id`, duração). No topo, o **limite de
+  requisições** de cada API lado a lado (quantas restam e quando a janela renova), lido dos cabeçalhos `RateLimit` e
+  `RateLimit-Policy`; num 429, o alerta diz quando tentar de novo (`Retry-After`).
 - **Testar erros**: 14 requisições inválidas de propósito (JSON malformado, Content-Type errado, token adulterado,
   token da outra API, campos inválidos, rota/método inexistente...). Cada uma roda **nas duas APIs lado a lado** e é
   comparada com o `status` e o `code` esperados pelo contrato.
@@ -120,6 +122,8 @@ src/app/
 │   ├── session.store.ts    # uma sessão por API (localStorage)
 │   ├── inspector.store.ts  # histórico do painel "por baixo dos panos"
 │   ├── api-status.store.ts # quais APIs estão acordadas (cold start do Render)
+│   ├── rate-limit.ts       # leitura dos cabeçalhos RateLimit / RateLimit-Policy / Retry-After
+│   ├── rate-limit.store.ts # último limite conhecido de cada API
 │   ├── interceptors.ts
 │   ├── auth.service.ts / tasks.service.ts
 │   └── auth.guards.ts

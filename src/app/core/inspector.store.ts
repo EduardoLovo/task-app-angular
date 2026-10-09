@@ -1,4 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
+import { RateLimitQuota } from './rate-limit';
 
 export interface InspectedRequest {
   method: string;
@@ -12,6 +13,10 @@ export interface InspectedResponse {
   statusText: string;
   requestId: string | null;
   body: unknown;
+  /** Limites informados nos cabeçalhos RateLimit / RateLimit-Policy. */
+  rateLimit: RateLimitQuota[];
+  /** Segundos do cabeçalho Retry-After (vem no 429). */
+  retryAfter: number | null;
 }
 
 export interface InspectorEntry {

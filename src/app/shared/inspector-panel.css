@@ -102,3 +102,37 @@ pre {
   font-size: 0.8rem;
   margin: 0 0 0.35rem;
 }
+
+.quotas {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 0.6rem 0.75rem;
+}
+
+.quotas .small {
+  margin: 0 0 0.5rem;
+}
+
+.quota-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.quota-api {
+  display: grid;
+  gap: 0.4rem;
+  align-content: start;
+  font-size: 0.85rem;
+}
+
+.quota-api.current strong {
+  color: var(--primary);
+}
+
+.entry-limits {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0 0 0.5rem;
+}

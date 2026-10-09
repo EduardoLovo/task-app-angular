@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorBody, ErrorDetail } from './api.models';
+import { parseRetryAfter } from './rate-limit';
 
 /**
  * Erro de API já normalizado. Toda falha de requisição chega aos componentes como `ApiError`,
@@ -12,6 +13,8 @@ export class ApiError extends Error {
     message: string,
     readonly details: ErrorDetail[] = [],
     readonly requestId: string | null = null,
+    /** Segundos até poder tentar de novo (cabeçalho Retry-After, no 429). */
+    readonly retryAfter: number | null = null,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -52,7 +55,14 @@ export function toApiError(response: HttpErrorResponse, apiName: string): ApiErr
   const body: unknown = response.error;
   if (isErrorBody(body)) {
     const { status, code, message, details, requestId } = body.error;
-    return new ApiError(status, code, message, Array.isArray(details) ? details : [], requestId ?? null);
+    return new ApiError(
+      status,
+      code,
+      message,
+      Array.isArray(details) ? details : [],
+      requestId ?? null,
+      parseRetryAfter(response.headers.get('Retry-After')),
+    );
   }
 
   return new ApiError(

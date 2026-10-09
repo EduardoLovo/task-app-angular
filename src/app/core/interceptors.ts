@@ -1,4 +1,4 @@
-import { HttpErrorResponse, HttpEventType, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
+import { HttpErrorResponse, HttpEventType, HttpHeaders, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, defer, finalize, tap, throwError, timeout } from 'rxjs';
@@ -7,6 +7,8 @@ import { ApiSelector } from './api-selector.service';
 import { ApiStatusStore } from './api-status.store';
 import { ATTACH_SESSION_TOKEN, REQUEST_LABEL } from './http-context';
 import { InspectorStore } from './inspector.store';
+import { parseRateLimit, parseRetryAfter } from './rate-limit';
+import { RateLimitStore } from './rate-limit.store';
 import { SessionStore } from './session.store';
 
 /** Depois disso sem resposta, a API provavelmente está acordando: o app mostra um aviso. */
@@ -117,6 +119,7 @@ export const inspectorInterceptor: HttpInterceptorFn = (req, next) => {
   if (!target) return next(req);
 
   const inspector = inject(InspectorStore);
+  const rateLimits = inject(RateLimitStore);
   const id = inspector.start(target.name, req.context.get(REQUEST_LABEL), {
     method: req.method,
     url: req.urlWithParams,
@@ -125,38 +128,32 @@ export const inspectorInterceptor: HttpInterceptorFn = (req, next) => {
   });
   let finished = false;
 
+  const finish = (status: number, statusText: string, headers: HttpHeaders, body: unknown) => {
+    finished = true;
+    const rateLimit = parseRateLimit(headers.get('RateLimit'), headers.get('RateLimit-Policy'));
+    rateLimits.update(target.id, rateLimit);
+    inspector.finish(id, {
+      status,
+      statusText,
+      requestId: headers.get('X-Request-Id'),
+      body,
+      rateLimit,
+      retryAfter: parseRetryAfter(headers.get('Retry-After')),
+    });
+  };
+
   return next(req).pipe(
     tap((event) => {
-      if (event.type === HttpEventType.Response) {
-        finished = true;
-        inspector.finish(id, {
-          status: event.status,
-          statusText: event.statusText,
-          requestId: event.headers.get('X-Request-Id'),
-          body: event.body,
-        });
-      }
+      if (event.type === HttpEventType.Response) finish(event.status, event.statusText, event.headers, event.body);
     }),
     catchError((error: unknown) => {
       if (error instanceof HttpErrorResponse) {
-        finished = true;
-        inspector.finish(id, {
-          status: error.status,
-          statusText: error.status === 0 ? 'Sem resposta' : error.statusText,
-          requestId: error.headers.get('X-Request-Id'),
-          body: error.error,
-        });
+        finish(error.status, error.status === 0 ? 'Sem resposta' : error.statusText, error.headers, error.error);
       }
       return throwError(() => error);
     }),
     finalize(() => {
-      if (!finished)
-        inspector.finish(id, {
-          status: 0,
-          statusText: 'Cancelada ou sem resposta a tempo',
-          requestId: null,
-          body: null,
-        });
+      if (!finished) finish(0, 'Cancelada ou sem resposta a tempo', new HttpHeaders(), null);
     }),
   );
 };
